@@ -119,22 +119,31 @@ with torch.no_grad():
         # 对于单个Key，所有注意力权重应该是1.0
         print(f"     第一个样本的注意力权重: {attn_weights[0, 0, :5, 0].numpy()}")
     
-    # Layer Norm
-    print("\n3. Layer Normalization阶段:")
-    normalized = model.layer_norm(attended)
-    print(f"   输出shape: {normalized.shape}")
-    print(f"   均值: {normalized.mean().item():.6f}")
-    print(f"   标准差: {normalized.std().item():.6f}")
+    # 第一个残差连接 + 层归一化
+    print("\n3. 残差连接 + Layer Normalization阶段:")
+    rna_projected = model.rna_to_attn(rna_encoded)
+    attended = model.layer_norm1(attended + rna_projected)
+    print(f"   输出shape: {attended.shape}")
+    print(f"   均值: {attended.mean().item():.6f}")
+    print(f"   标准差: {attended.std().item():.6f}")
+    
+    # FFN + 第二个残差连接
+    print("\n4. FFN + 第二个残差连接:")
+    ffn_out = model.ffn(attended)
+    attended = model.layer_norm2(ffn_out + attended)
+    print(f"   输出shape: {attended.shape}")
+    print(f"   均值: {attended.mean().item():.6f}")
+    print(f"   标准差: {attended.std().item():.6f}")
     
     # 池化
-    print("\n4. 全局平均池化阶段:")
-    pooled = normalized.mean(dim=1)
+    print("\n5. 全局平均池化阶段:")
+    pooled = attended.mean(dim=1)
     print(f"   输出shape: {pooled.shape}")
     print(f"   均值: {pooled.mean().item():.6f}")
     print(f"   标准差: {pooled.std().item():.6f}")
     
     # 分类器
-    print("\n5. 分类器阶段:")
+    print("\n6. 分类器阶段:")
     logits, _ = model(rna_seqs, prot_emb)
     print(f"   Logits shape: {logits.shape}")
     print(f"   Logits 值: {logits.squeeze().numpy()}")

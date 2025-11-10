@@ -39,10 +39,14 @@ def train_epoch(
     dataloader: DataLoader,
     criterion: nn.Module,
     optimizer: optim.Optimizer,
-    device: str
+    device: str,
+    max_grad_norm: float = 1.0
 ) -> Tuple[float, float]:
     """
     训练一个epoch
+    
+    Args:
+        max_grad_norm: 梯度裁剪的最大范数
     
     Returns:
         (平均损失, 准确率)
@@ -67,6 +71,10 @@ def train_epoch(
         
         # 反向传播
         loss.backward()
+        
+        # 梯度裁剪，防止梯度爆炸
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+        
         optimizer.step()
         
         # 记录
