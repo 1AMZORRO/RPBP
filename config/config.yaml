@@ -32,16 +32,16 @@ model:
   
   # 分类器
   classifier:
-    hidden_dims: [512, 256, 128]
-    dropout: 0.3
+    hidden_dims: [256, 128]  # 简化分类器
+    dropout: 0.2  # 降低dropout
 
 # 训练参数
 training:
   batch_size: 32
   num_epochs: 50
-  learning_rate: 0.001
-  weight_decay: 0.0001
-  early_stopping_patience: 10
+  learning_rate: 0.003  # 提高学习率
+  weight_decay: 0.00001  # 降低权重衰减
+  early_stopping_patience: 15  # 增加耐心值
   
   # 优化器
   optimizer: "adam"
@@ -51,7 +51,7 @@ training:
     type: "reduce_on_plateau"
     factor: 0.5
     patience: 5
-    min_lr: 0.00001
+    min_lr: 0.0001
 
 # ESM2模型配置
 esm:

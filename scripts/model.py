@@ -85,8 +85,8 @@ class CrossAttentionLayer(nn.Module):
     
     改进点：
     1. 将蛋白质embedding扩展到序列长度，避免注意力退化
-    2. 使用位置编码使不同位置有差异
-    3. 添加残差连接改善梯度流
+    2. 使用可学习的位置embedding使不同位置有差异
+    3. 添加temperature参数控制注意力锐度
     """
     
     def __init__(
@@ -95,7 +95,8 @@ class CrossAttentionLayer(nn.Module):
         key_value_dim: int,
         num_heads: int = 8,
         dropout: float = 0.1,
-        hidden_dim: int = 256
+        hidden_dim: int = 256,
+        max_seq_len: int = 101
     ):
         """
         Args:
@@ -104,12 +105,14 @@ class CrossAttentionLayer(nn.Module):
             num_heads: 注意力头数
             dropout: Dropout率
             hidden_dim: 隐藏层维度
+            max_seq_len: 最大序列长度
         """
         super(CrossAttentionLayer, self).__init__()
         
         self.num_heads = num_heads
         self.hidden_dim = hidden_dim
         self.head_dim = hidden_dim // num_heads
+        self.max_seq_len = max_seq_len
         
         assert hidden_dim % num_heads == 0, "hidden_dim必须能被num_heads整除"
         
@@ -121,8 +124,11 @@ class CrossAttentionLayer(nn.Module):
         # 输出投影
         self.out_proj = nn.Linear(hidden_dim, hidden_dim)
         
-        # 位置编码投影 - 为每个位置添加可学习的偏移
-        self.pos_proj = nn.Linear(1, hidden_dim)
+        # 可学习的位置embedding
+        self.pos_embedding = nn.Parameter(torch.randn(1, max_seq_len, hidden_dim) * 0.02)
+        
+        # 可学习的temperature参数，用于控制注意力分布的锐度
+        self.temperature = nn.Parameter(torch.ones(1))
         
         self.dropout = nn.Dropout(dropout)
         self.scale = self.head_dim ** -0.5
@@ -132,19 +138,17 @@ class CrossAttentionLayer(nn.Module):
     
     def _reset_parameters(self):
         """改进的参数初始化"""
-        # Xavier初始化
-        nn.init.xavier_uniform_(self.query_proj.weight, gain=1.0)
-        nn.init.xavier_uniform_(self.key_proj.weight, gain=1.0)
-        nn.init.xavier_uniform_(self.value_proj.weight, gain=1.0)
-        nn.init.xavier_uniform_(self.out_proj.weight, gain=1.0)
-        nn.init.xavier_uniform_(self.pos_proj.weight, gain=0.1)  # 较小的初始化
+        # Xavier初始化，使用较小的gain
+        nn.init.xavier_uniform_(self.query_proj.weight, gain=0.5)
+        nn.init.xavier_uniform_(self.key_proj.weight, gain=0.5)
+        nn.init.xavier_uniform_(self.value_proj.weight, gain=0.5)
+        nn.init.xavier_uniform_(self.out_proj.weight, gain=0.5)
         
         # 偏置初始化为0
         nn.init.constant_(self.query_proj.bias, 0.)
         nn.init.constant_(self.key_proj.bias, 0.)
         nn.init.constant_(self.value_proj.bias, 0.)
         nn.init.constant_(self.out_proj.bias, 0.)
-        nn.init.constant_(self.pos_proj.bias, 0.)
         
     def forward(
         self,
@@ -171,20 +175,16 @@ class CrossAttentionLayer(nn.Module):
         Q = self.query_proj(query)  # [batch_size, seq_len, hidden_dim]
         
         # 将蛋白质embedding扩展到序列长度
-        # 为每个位置添加位置特定的编码
         protein_expanded = key_value.unsqueeze(1).expand(-1, seq_len, -1)
         # [batch_size, seq_len, protein_dim]
-        
-        # 创建位置编码 (0, 1, 2, ..., seq_len-1) 归一化到 [0, 1]
-        positions = torch.arange(seq_len, device=device).float().view(1, seq_len, 1) / seq_len
-        pos_encoding = self.pos_proj(positions)  # [1, seq_len, hidden_dim]
         
         # 投影蛋白质embedding
         K = self.key_proj(protein_expanded)  # [batch_size, seq_len, hidden_dim]
         V = self.value_proj(protein_expanded)  # [batch_size, seq_len, hidden_dim]
         
-        # 添加位置编码到K，使不同位置有差异
-        K = K + pos_encoding
+        # 添加可学习的位置embedding到K，使不同位置有差异
+        pos_emb = self.pos_embedding[:, :seq_len, :]  # [1, seq_len, hidden_dim]
+        K = K + pos_emb
         
         # 重塑为多头
         Q = Q.view(batch_size, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
@@ -192,8 +192,9 @@ class CrossAttentionLayer(nn.Module):
         V = V.view(batch_size, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
         # [batch_size, num_heads, seq_len, head_dim]
         
-        # 计算注意力分数
+        # 计算注意力分数，使用temperature
         attention_scores = torch.matmul(Q, K.transpose(-2, -1)) * self.scale
+        attention_scores = attention_scores / torch.clamp(self.temperature, min=0.1)
         # [batch_size, num_heads, seq_len, seq_len]
         
         attention_weights = F.softmax(attention_scores, dim=-1)
