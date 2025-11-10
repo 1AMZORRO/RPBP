@@ -274,7 +274,25 @@ def main():
     
     # 设置设备
     device = 'cuda' if torch.cuda.is_available() and config['device'] == 'cuda' else 'cpu'
-    print(f"使用设备: {device}")
+    
+    # 可视化设备信息
+    print("\n" + "=" * 60)
+    print("设备信息")
+    print("=" * 60)
+    print(f"PyTorch版本: {torch.__version__}")
+    print(f"CUDA是否可用: {torch.cuda.is_available()}")
+    if torch.cuda.is_available():
+        print(f"CUDA版本: {torch.version.cuda}")
+        print(f"GPU数量: {torch.cuda.device_count()}")
+        print(f"当前GPU: {torch.cuda.current_device()}")
+        print(f"GPU名称: {torch.cuda.get_device_name(0)}")
+        print(f"GPU内存: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+    print(f"使用设备: {device.upper()}")
+    if device == 'cuda':
+        print("✓ 正在使用GPU进行预测")
+    else:
+        print("⚠ 正在使用CPU进行预测")
+    print("=" * 60)
     
     print("=" * 60)
     print("RNA-蛋白质结合预测")
@@ -312,6 +330,12 @@ def main():
     
     # 步骤5: 进行预测
     print("\n步骤5: 进行预测")
+    
+    # 显示GPU内存使用（如果使用GPU）
+    if device == 'cuda':
+        print(f"模型已加载到GPU: {torch.cuda.get_device_name(0)}")
+        print(f"GPU内存使用: {torch.cuda.memory_allocated(0) / 1024**2:.2f} MB")
+    
     probs, true_labels, rna_seqs, attentions = predict(
         model,
         test_loader,

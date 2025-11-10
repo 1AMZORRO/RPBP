@@ -1,0 +1,86 @@
+# RNA-蛋白质结合位点预测 - 高性能配置
+# 此配置使用更大的模型和更长的训练时间以获得最佳性能
+# 需要更多GPU内存（建议16GB以上）
+
+# 数据路径
+data:
+  protein_fasta: "data/raw/prot_seqs.fasta"
+  rna_fasta: "data/train/rna_sequences.fasta"
+  labels: "data/train/labels.txt"
+  protein_embeddings: "data/train/protein_embeddings.pt"
+  
+# 数据集划分比例
+split:
+  train: 0.7
+  val: 0.15
+  test: 0.15
+  random_seed: 42
+
+# 模型参数 - 大规模配置
+model:
+  # RNA编码
+  rna_seq_length: 101
+  rna_vocab_size: 5
+  rna_embedding_dim: 512  # 更大的embedding维度
+  
+  # 蛋白质编码
+  protein_embedding_dim: 1280
+  
+  # Cross-attention参数
+  attention:
+    num_heads: 16  # 更多注意力头
+    dropout: 0.1
+    hidden_dim: 1024  # 更大的隐藏层
+  
+  # 分类器 - 更深的网络
+  classifier:
+    hidden_dims: [2048, 1024, 512, 256, 128]
+    dropout: 0.2
+
+# 训练参数 - 高性能配置
+training:
+  batch_size: 128  # 更大的批次（需要更多GPU内存）
+  num_epochs: 150  # 更多训练轮数
+  learning_rate: 0.0003  # 更小的初始学习率
+  weight_decay: 0.00005
+  early_stopping_patience: 20  # 更大的耐心值
+  
+  # 优化器
+  optimizer: "adamw"  # 使用AdamW优化器
+  
+  # 学习率调度 - 使用余弦退火
+  lr_scheduler:
+    type: "cosine_annealing"
+    T_max: 150
+    eta_min: 0.0000001
+
+# ESM2模型配置
+esm:
+  model_name: "esm2_t33_650M_UR50D"
+  batch_size: 2  # 减小批次以节省内存
+  
+# 输出路径
+output:
+  model_dir: "models/checkpoints_large"
+  best_model: "models/checkpoints_large/best_model.pth"
+  training_history: "models/checkpoints_large/training_history.json"
+  plots_dir: "output"
+
+# 预测参数
+prediction:
+  batch_size: 128
+  top_k_binding_sites: 15  # 显示更多结合位点
+  
+# 设备配置
+device: "cuda"
+use_mixed_precision: true  # 启用混合精度训练以节省内存和加速
+
+# 数据增强（可选）
+augmentation:
+  enabled: false
+  random_mask_prob: 0.1  # 随机mask概率
+  
+# 正则化
+regularization:
+  label_smoothing: 0.1  # 标签平滑
+  gradient_clip: 1.0  # 梯度裁剪

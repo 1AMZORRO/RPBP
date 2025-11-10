@@ -52,6 +52,39 @@ RPBP/
 
 ## 安装依赖
 
+### 检查GPU支持
+
+首先运行GPU检测脚本，查看系统是否支持GPU：
+
+```bash
+python check_gpu.py
+```
+
+这将显示：
+- PyTorch版本
+- CUDA是否可用
+- GPU设备信息（如果有）
+- 内存使用情况
+- 训练建议
+
+### 安装PyTorch
+
+**如果有GPU（推荐）：**
+```bash
+# CUDA 11.8版本
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+# 或 CUDA 12.1版本
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+**如果只有CPU：**
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+```
+
+### 安装其他依赖
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -62,6 +95,60 @@ pip install -r requirements.txt
 - BioPython >= 1.81
 - scikit-learn >= 1.3.0
 - matplotlib, seaborn (可视化)
+
+## GPU使用说明
+
+### 训练时的GPU使用
+
+训练脚本会自动检测并使用GPU（如果可用）：
+
+```bash
+python scripts/train.py
+```
+
+运行时会显示：
+```
+============================================================
+设备信息
+============================================================
+PyTorch版本: 2.0.0
+CUDA是否可用: 是
+CUDA版本: 11.8
+GPU数量: 1
+当前GPU: 0
+GPU名称: NVIDIA GeForce RTX 3090
+GPU内存: 24.00 GB
+使用设备: CUDA
+✓ 正在使用GPU进行训练
+============================================================
+```
+
+每个epoch都会显示GPU内存使用情况：
+```
+Epoch 1/50
+GPU内存使用: 2345.67 MB / 3456.78 MB (已分配/已保留)
+```
+
+### 预测时的GPU使用
+
+预测脚本同样会自动使用GPU：
+
+```bash
+python scripts/predict.py --config config/config.yaml \
+    --model models/checkpoints/best_model.pth \
+    --rna-fasta data/test/rna_sequences.fasta \
+    --labels data/test/labels.txt \
+    --output predictions.txt \
+    --visualize
+```
+
+### 强制使用CPU
+
+如果需要强制使用CPU，可以在`config/config.yaml`中设置：
+
+```yaml
+device: "cpu"  # 改为cpu
+```
 
 ## 使用流程
 
@@ -232,10 +319,26 @@ MDSTLTASEIRQRFIDFFKRNEHTYVHSSATIPLDDPTLLFANAGMNQFKPIFLNTIDPS...
 
 ## 注意事项
 
-1. **显存要求**: ESM2模型需要至少8GB GPU显存，建议使用16GB以上
-2. **训练时间**: 完整训练可能需要数小时，取决于硬件配置
-3. **数据文件**: 大型数据文件(fasta, embeddings)已在.gitignore中排除
-4. **随机种子**: 使用固定随机种子(42)确保结果可复现
+1. **GPU要求**: 
+   - 强烈建议使用GPU进行训练
+   - ESM2模型需要至少8GB GPU显存
+   - 完整训练建议使用16GB以上显存的GPU
+   - 运行`python check_gpu.py`检测GPU支持情况
+   
+2. **训练时间**: 
+   - 使用GPU：完整训练约需要2-4小时
+   - 使用CPU：可能需要数十小时，不建议
+   
+3. **数据文件**: 
+   - 大型数据文件(fasta, embeddings)已在.gitignore中排除
+   - 训练前需运行数据准备脚本生成这些文件
+   
+4. **随机种子**: 
+   - 使用固定随机种子(42)确保结果可复现
+
+5. **内存管理**:
+   - 如果遇到GPU内存不足，可以减小batch_size
+   - 在config/config.yaml中调整 `training.batch_size`
 
 ## 参考
 

@@ -153,7 +153,27 @@ def main():
     
     # 设置设备
     device = 'cuda' if torch.cuda.is_available() and config['device'] == 'cuda' else 'cpu'
-    print(f"使用设备: {device}")
+    
+    # 可视化设备信息
+    print("\n" + "=" * 60)
+    print("设备信息")
+    print("=" * 60)
+    print(f"PyTorch版本: {torch.__version__}")
+    print(f"CUDA是否可用: {torch.cuda.is_available()}")
+    if torch.cuda.is_available():
+        print(f"CUDA版本: {torch.version.cuda}")
+        print(f"GPU数量: {torch.cuda.device_count()}")
+        print(f"当前GPU: {torch.cuda.current_device()}")
+        print(f"GPU名称: {torch.cuda.get_device_name(0)}")
+        print(f"GPU内存: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+    print(f"使用设备: {device.upper()}")
+    if device == 'cuda':
+        print("✓ 正在使用GPU计算蛋白质embeddings")
+        print("  这将显著加快计算速度")
+    else:
+        print("⚠ 正在使用CPU计算蛋白质embeddings")
+        print("  建议使用GPU以加快速度（可能需要10-30分钟）")
+    print("=" * 60)
     
     print("=" * 60)
     print("蛋白质Embedding预计算")

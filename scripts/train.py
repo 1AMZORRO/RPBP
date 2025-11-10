@@ -188,7 +188,25 @@ def main():
     
     # 设置设备
     device = 'cuda' if torch.cuda.is_available() and config['device'] == 'cuda' else 'cpu'
-    print(f"使用设备: {device}")
+    
+    # 可视化设备信息
+    print("\n" + "=" * 60)
+    print("设备信息")
+    print("=" * 60)
+    print(f"PyTorch版本: {torch.__version__}")
+    print(f"CUDA是否可用: {torch.cuda.is_available()}")
+    if torch.cuda.is_available():
+        print(f"CUDA版本: {torch.version.cuda}")
+        print(f"GPU数量: {torch.cuda.device_count()}")
+        print(f"当前GPU: {torch.cuda.current_device()}")
+        print(f"GPU名称: {torch.cuda.get_device_name(0)}")
+        print(f"GPU内存: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+    print(f"使用设备: {device.upper()}")
+    if device == 'cuda':
+        print("✓ 正在使用GPU进行训练")
+    else:
+        print("⚠ 正在使用CPU进行训练（建议使用GPU以加快速度）")
+    print("=" * 60)
     
     print("=" * 60)
     print("RNA-蛋白质结合预测模型训练")
@@ -284,6 +302,12 @@ def main():
     print("\n步骤7: 开始训练")
     print("=" * 60)
     
+    # 显示设备使用情况
+    if device == 'cuda':
+        print(f"模型已加载到GPU: {torch.cuda.get_device_name(0)}")
+        print(f"GPU内存使用: {torch.cuda.memory_allocated(0) / 1024**2:.2f} MB")
+        print("=" * 60)
+    
     best_val_loss = float('inf')
     best_epoch = 0
     patience_counter = 0
@@ -301,6 +325,11 @@ def main():
     
     for epoch in range(config['training']['num_epochs']):
         print(f"\nEpoch {epoch + 1}/{config['training']['num_epochs']}")
+        
+        # 显示GPU内存使用（如果使用GPU）
+        if device == 'cuda':
+            print(f"GPU内存使用: {torch.cuda.memory_allocated(0) / 1024**2:.2f} MB / "
+                  f"{torch.cuda.memory_reserved(0) / 1024**2:.2f} MB (已分配/已保留)")
         
         # 训练
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
