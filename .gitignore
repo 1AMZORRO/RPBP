@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# 数据文件（过大，不提交到git）
+data/raw/*.fasta
+data/train/*.fasta
+data/train/*.txt
+data/train/*.pt
+data/test/*.fasta
+data/test/*.txt
+
+# 模型文件
+models/checkpoints/*.pth
+models/checkpoints/*.json
+
+# 输出文件
+output/*.png
+predictions*.txt
+
+# 但保留这些文本文件
+!requirements.txt
+!README.md
+!.gitignore
+
+# 系统文件
+.DS_Store
+Thumbs.db
