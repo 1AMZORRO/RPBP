@@ -1,0 +1,75 @@
+# RNA-蛋白质结合位点预测 - 配置文件
+
+# 数据路径
+data:
+  protein_fasta: "data/raw/prot_seqs.fasta"
+  rna_fasta: "data/train/rna_sequences.fasta"
+  labels: "data/train/labels.txt"
+  protein_embeddings: "data/train/protein_embeddings.pt"
+  
+# 数据集划分比例
+split:
+  train: 0.7
+  val: 0.15
+  test: 0.15
+  random_seed: 42
+
+# 模型参数
+model:
+  # RNA编码
+  rna_seq_length: 101  # RNA序列长度
+  rna_vocab_size: 5    # A, C, G, U/T, N (未知)
+  rna_embedding_dim: 128
+  
+  # 蛋白质编码
+  protein_embedding_dim: 1280  # ESM2默认输出维度
+  
+  # Cross-attention参数
+  attention:
+    num_heads: 8
+    dropout: 0.1
+    hidden_dim: 256
+  
+  # 分类器
+  classifier:
+    hidden_dims: [512, 256, 128]
+    dropout: 0.3
+
+# 训练参数
+training:
+  batch_size: 32
+  num_epochs: 50
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  early_stopping_patience: 10
+  
+  # 优化器
+  optimizer: "adam"
+  
+  # 学习率调度
+  lr_scheduler:
+    type: "reduce_on_plateau"
+    factor: 0.5
+    patience: 5
+    min_lr: 0.00001
+
+# ESM2模型配置
+esm:
+  model_name: "esm2_t33_650M_UR50D"  # 使用中等大小的ESM2模型
+  batch_size: 4  # ESM2推理批次大小（受显存限制）
+  
+# 输出路径
+output:
+  model_dir: "models/checkpoints"
+  best_model: "models/checkpoints/best_model.pth"
+  training_history: "models/checkpoints/training_history.json"
+  plots_dir: "output"
+
+# 预测参数
+prediction:
+  batch_size: 64
+  top_k_binding_sites: 10  # 显示前K个结合位点
+  
+# 设备配置
+device: "cuda"  # cuda 或 cpu
+use_mixed_precision: false  # 是否使用混合精度训练
